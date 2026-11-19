@@ -4,6 +4,7 @@ import PlayerPane from "./PlayerPane";
 import CodePane from "./CodePane";
 import QuizModal from "./QuizModal";
 import SettingsPanel from "../../llm/SettingsPanel";
+import TutorialModal from "./Tutorial";
 import { useLLMSettings } from "../../llm/settings";
 import { useStudio } from "../../store/studio";
 import { runPipeline, abortPipeline } from "../../agents/pipeline";
@@ -13,6 +14,7 @@ const AUDIENCES = ["高中生", "大学生", "研究生", "工程师", "零基�
 export default function Studio({ onHome }: { onHome: () => void }) {
   const bridgeRef = useRef<import("../../agents/pipeline").PlayerBridge | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   const topic = useStudio((s) => s.topic);
   const audience = useStudio((s) => s.audience);
@@ -102,6 +104,13 @@ export default function Studio({ onHome }: { onHome: () => void }) {
           </button>
         )}
         <button
+          onClick={() => setTutorialOpen(true)}
+          className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300 hover:bg-white/10"
+          title="新手教程"
+        >
+          ❓ 教程
+        </button>
+        <button
           onClick={() => setSettingsOpen(true)}
           className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300 hover:bg-white/10"
           title="配置模型 API"
@@ -137,12 +146,18 @@ export default function Studio({ onHome }: { onHome: () => void }) {
                 ✕
               </button>
             </div>
-            <SettingsPanel />
+            <SettingsPanel
+              onShowTutorial={() => {
+                setSettingsOpen(false);
+                setTutorialOpen(true);
+              }}
+            />
           </div>
         </div>
       ) : null}
 
       <QuizModal />
+      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>
   );
 }

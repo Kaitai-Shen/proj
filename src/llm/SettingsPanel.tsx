@@ -9,7 +9,11 @@ const inputClass =
 const labelClass = "block space-y-1.5";
 const labelTextStyle = "text-xs font-medium text-slate-400";
 
-export default function SettingsPanel() {
+export default function SettingsPanel({
+  onShowTutorial,
+}: {
+  onShowTutorial?: () => void;
+}) {
   const { providerId, baseUrl, apiKey, model, setProvider, setBaseUrl, setApiKey, setModel, clear } =
     useLLMSettings();
   const [showKey, setShowKey] = useState(false);
@@ -148,6 +152,16 @@ export default function SettingsPanel() {
             <p className="break-all text-xs text-red-400">✗ {result.error}</p>
           ))}
       </div>
+
+      {onShowTutorial ? (
+        <button
+          type="button"
+          onClick={onShowTutorial}
+          className="text-left text-xs text-accent-soft transition hover:text-accent"
+        >
+          📖 第一次配置？查看图文新手教程 →
+        </button>
+      ) : null}
     </div>
   );
 }

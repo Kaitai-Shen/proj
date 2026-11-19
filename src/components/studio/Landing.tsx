@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useStudio } from "../../store/studio";
 import { EXAMPLES, type Example } from "../../examples";
 import { totalFrames } from "../../agents/pipeline";
+import TutorialModal from "./Tutorial";
 
 export default function Landing({ onStart }: { onStart: () => void }) {
   const [topic, setTopic] = useState("");
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const setStudioTopic = useStudio((s) => s.setTopic);
 
   const start = () => {
@@ -69,6 +71,12 @@ export default function Landing({ onStart }: { onStart: () => void }) {
       <p className="mt-2 text-xs text-slate-600">
         生成需要你自备模型 API Key（仅保存在本地浏览器）· 支持DeepSeek / 通义千问 / OpenAI 等 OpenAI 兼容接口
       </p>
+      <button
+        onClick={() => setTutorialOpen(true)}
+        className="mt-3 inline-flex items-center gap-1.5 self-start rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs text-accent-soft hover:bg-accent/20"
+      >
+        📖 第一次用？看新手教程，10 分钟生成第一支视频 →
+      </button>
 
       <div className="mt-10">
         <h2 className="mb-3 text-xs font-semibold tracking-wide text-slate-500">
@@ -102,6 +110,8 @@ export default function Landing({ onStart }: { onStart: () => void }) {
         方法灵感来自 arXiv 2510.01174《Code2Video: A Code-centric Paradigm for
         Educational Video Generation》（NUS Show Lab）
       </p>
+
+      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} />
     </div>
   );
 }
