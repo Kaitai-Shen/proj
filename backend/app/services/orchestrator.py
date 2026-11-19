@@ -178,6 +178,7 @@ def _stage_coding(session: Session, job: Job, plan: dict, started: float) -> Non
     _commit_job(session, job)
 
     scenes = session.query(Scene).filter(Scene.job_id == job.id).order_by(Scene.order).all()
+    prev_code = None
     for i, scene in enumerate(scenes, start=1):
         if _cancel_flag(session, job.id):
             _cancel(session, job)
@@ -185,7 +186,8 @@ def _stage_coding(session: Session, job: Job, plan: dict, started: float) -> Non
         if _timed_out(started):
             raise _Timeout()
         job.current_scene = i
-        code = coder_svc.generate_scene_code(session, job.id, scene, plan)
+        code = coder_svc.generate_scene_code(session, job.id, scene, plan, prev_code=prev_code)
+        prev_code = code
         sdir = storage.scene_dir(job.id, scene.scene_id)
         version = storage.next_source_version(sdir)
         source_path = storage.write_text(sdir / f"source_v{version}.py", code)
