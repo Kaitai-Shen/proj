@@ -1,0 +1,9 @@
+# AI Tutor Video backend — pinned to versions verified in backend/.venv (Python 3.13)
+fastapi==0.165.0
+uvicorn[standard]==0.54.0
+SQLAlchemy==2.1.9
+pydantic==2.14.3
+openai==3.55.1
+httpx==0.28.1
+pytest==9.2.0
+python-dotenv==1.2.4
