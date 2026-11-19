@@ -4,44 +4,36 @@
 
 ## 仓库概况
 
-- 项目：LectureCast（暂定名）— 基于 Code2Video 论文（arXiv 2510.01174）的教学视频生成 Web 应用
-- 定位：用户输入知识点，三智能体（Planner/Coder/Critic）在浏览器端生成可播放的教学动画视频，看完可答题验证掌握
-- 用途：参加 2026 Qoder 高校创造力大赛（天池 532536，StudyHack 赛道）
+- 项目：**AI Tutor Video**（参赛站点工作名 LectureCast）— 基于 Code2Video 论文（arXiv 2510.01174）的多智能体教学视频生成系统
+- 蓝图：`AI_Tutor_Video_技术设计文档 (1).md` V2.0（2026-11-19 确定为开发基线，docs/ 有评估）
+- 参赛：2026 Qoder 高校创造力大赛（天池 532536，StudyHack 赛道）
 - 硬性截止：报名 + 作品帖 **2026-11-30 18:00**；作品须部署到 Qoder Sites 并公开访问
-- 主语言：TypeScript（纯前端 SPA）
+- 部署形态：**前端 = Qoder Sites（公开入口）；后端 = FastAPI + Docker Manim 渲染，部署于外部 Linux 服务器**（当前阶段本机 WSL2/Docker 开发，公网方案赛前确定）
 
-## 架构基线（已确认决策）
+## 架构基线（v2，2026-11-19 转向确认）
 
-1. **纯前端 SPA**：Qoder Sites 部署静态产物；后端仅保留「可选 Edge Function 转发」一个能力。
-2. **BYOK（自带 key）直连**：用户在前端填 API Key + Base URL（OpenAI 兼容协议），key 仅存 localStorage、界面明示「仅保存在本地浏览器」；供应商 CORS 拦截时自动降级走 Edge Function 转发（key 随请求透传，服务端不存储不落库）。
-3. **Code-centric 渲染**：复刻 Code2Video 论文范式 — LLM 生成受约束的 Remotion（React 视频框架）组件代码，浏览器内 Sucrase 转译后在 Remotion `<Player>` 实时播放。「视频 = 可执行代码」。
-4. **三智能体管线**（简化复刻论文）：
-   - **Planner**：知识点 → 分镜脚本 JSON（每节标题 / 讲解词 / 动画意图）+ 教学小测验题
-   - **Coder**：分镜 → Remotion 组件代码（流式直播打字效果）；仅允许使用内置组件库 API
-   - **Critic**：Player 按帧截图 → VLM 审查布局/遮挡/文字溢出 → 生成修正补丁 → 循环
-5. **无 key 演示模式**：预生成 3–5 个精品案例（分镜 + 代码 + 成品），一键回放完整智能体过程；评委无需 key 即可体验。
-6. **TeachQuiz**：视频结束后小测验验证掌握程度（呼应论文端到端评测指标 TeachQuiz）。
-7. **导出（stretch goal）**：逐帧截图 + WebCodecs/MediaRecorder 导出 WebM/MP4；未完成不阻塞主线。
+1. **前端**：React 18 + TS + Vite + Tailwind（沿用现有栈）。业务页面：创建任务 `/`、任务详情 `/jobs/:id`（可刷新直达）、历史 `/history`；react-router-dom。原 LectureCast 浏览器渲染工作室保留为 `/demo` 演示页（后端宕机时的降级兜底 + 评委免后端体验）。
+2. **网关契约**：`VideoGenerationGateway` REST JSON（契约文件 `docs/gateway-api-contract.md`）。创建任务返回 202 + job_id；前端 2s 轮询任务状态。前端从 `VITE_VIDEO_API_BASE_URL` 读网关地址，不硬编码。
+3. **后端**：FastAPI + Pydantic v2 + SQLite(SQLAlchemy) + 独立 worker 进程（MVP 不引 Redis/Celery）。状态机：QUEUED→PLANNING→CODING→RENDERING→NARRATING→COMPOSING→VALIDATING→COMPLETED / FAILED / CANCELLED；子状态含 REPAIRING_CODE。
+4. **渲染**：Manim Community **0.19** 固定版本容器；非 root、`--network none`、CPU/内存/时长限额；渲染失败定向修复最多 2 次（共 3 次渲染）；产物版本化不覆盖。
+5. **模型**：服务端托管 Key（团队承担费用）。LLM = **DeepSeek**（Planner/Coder）；VLM（Critic）与中文 TTS 为 P1/P2 阶段再选型。
+6. **分期范围**：P0 = 无声 MP4 全链路（规划→编码→渲染→修复→合并）；P1 = TTS + 字幕 + 音画对齐 + 任务历史；P2 = VLM Critic 抽帧审查。初始仅支持 15–90 秒数学/算法/结构化动画。
+7. **安全**：AI 生成的 Python 绝不在 API/worker 主进程执行，只在受限渲染容器内；密钥仅存服务端 `.env`（不入 Git）；容器无网络、非 root、资源限额；公网开放前补认证与限流。
 
 ## 技术栈
 
-- 构建：Vite + React 18 + TypeScript；包管理 npm（Node ≥ 20）
-- 样式：Tailwind CSS
-- 视频渲染：`@remotion/player`（浏览器端）
-- LLM 目标 API：自研受约束动画组件库（FormulaCard / StepList / AnimatedAxes 等，位于 `src/components/anim/`）
-- 运行时转译：sucrase（浏览器内 JSX→JS）+ 受限作用域求值
-- 公式：KaTeX；状态：zustand
-- LLM 接入：OpenAI 兼容 `chat/completions` + SSE 流式
+- 前端：Vite + React 18 + TypeScript + Tailwind + react-router-dom；播放用原生 HTML5 video
+- 后端：Python 3.11（容器内固定版本；本机 3.13 兼容运行）、FastAPI、Uvicorn、SQLAlchemy、openai SDK（DeepSeek 兼容协议）、pytest
+- 渲染容器：manim 0.19 + LaTeX + FFmpeg；宿主机 FFmpeg 9.0.1 已就绪
+- 部署：Docker Compose（renderer + backend）；本机 WSL2 Ubuntu 跑 Docker Engine（未装，安装前需确认）
 
-## 目录结构（规划）
+## 目录结构
 
-- `src/components/studio/` 生成工作台 UI（管线可视化 / 播放器 / 代码编辑器联动）
-- `src/components/anim/` 受约束动画组件库（LLM 生成代码的目标 API）
-- `src/agents/` Planner / Coder / Critic 的 prompt 与编排逻辑
-- `src/llm/` BYOK 客户端、流式解析、CORS 降级转发
-- `src/sandbox/` Sucrase 转译 + 受限求值 + 错误捕获
-- `src/examples/` 预生成演示案例
-- `functions/` 可选 Edge Function 转发（Qoder Sites）
+- `src/` 前端（现有壳 + 新增业务页面；`src/components/studio/` 为演示页）
+- `backend/app/` FastAPI：`api/`(jobs,artifacts,health) `core/`(config,security,errors) `models/` `services/`(orchestrator,planner,coder,fixer,alignment,composer) `providers/` `tools/`(manim_runner,ffmpeg_runner,storage) `workers/`
+- `renderer/` Dockerfile + entrypoint + policies
+- `deploy/` compose.yaml + nginx.conf
+- `docs/` 网关契约、部署清单、调研报告
 
 ## 工作约定
 
@@ -50,15 +42,19 @@
 3. 不随意引入新依赖；确需引入时在提交信息说明理由。
 4. 未经确认不执行破坏性操作（force push、删除分支、重置工作区等）。
 5. 保持 README 与实际结构同步。
-6. 本地开发：`npm install` → `npm run dev`；`npm run build` 产出静态站点。
-7. 比赛材料（作品帖五部分、Qoder 开发过程截图）随开发随手留存，勿拖到最后。
+6. **开发过程中及时 commit + push**（2026-11-19 用户明确要求，常态授权；破坏性操作仍需单独确认）。
+7. 本地开发：前端 `npm run dev`（:5180）；后端 `uvicorn app.main:app`（:8000）；`npm run build` 产出静态站点。
+8. 比赛材料（作品帖五部分、Qoder 开发过程截图）随开发随手留存，勿拖到最后。
 
-## 里程碑
+## 里程碑（11 天压缩版，2026-11-19 起）
 
 | 阶段 | 日期 | 内容 |
 | --- | --- | --- |
-| M1 | 11.19–20 | 脚手架 + 动画组件库 API + LLM 接入层 |
-| M2 | 11.21–24 | Planner→Coder→播放器，单知识点全流程跑通 |
-| M3 | 11.25–26 | Critic 截帧修正 + TeachQuiz + 演示模式 |
-| M4 | 11.27–28 | UI 打磨 + 案例画廊 |
-| M5 | 11.29–30 | Qoder Sites 部署 + 论坛作品帖 |
+| D1 | 11.19–20 | 契约定稿 + 后端骨架 + 前端三页面骨架 + renderer 镜像跑通固定示例 |
+| D2–D3 | 11.21–22 | P0 无模型渲染链路 → 接 DeepSeek 单场景生成 + 代码修复 |
+| D4–D5 | 11.23–24 | Planner 多场景 + 状态机/取消/进度 + 前端联调端到端 |
+| D6–D7 | 11.25–26 | P1：TTS + 字幕 + 音画对齐 + 合成（视进度取舍） |
+| D8–D9 | 11.27–28 | P2：VLM Critic 抽帧审查 + 打磨 + 冒烟测试集 |
+| D10–D11 | 11.29–30 | 公网部署（服务器方案落地）+ 作品帖素材 |
+
+已知风险：本机 Docker 未装（WSL2 方案待确认）；公网部署方案未定（本机开发 → 赛前需公网 HTTPS）；TTS 供应商未选型。

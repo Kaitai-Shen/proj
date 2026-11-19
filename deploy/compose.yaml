@@ -1,0 +1,39 @@
+# 部署编排（云服务器阶段启用；本机开发直接跑 venv + uvicorn）
+# 设计文档 §10 deploy/：backend + renderer 镜像 + nginx
+# 说明：renderer 按 job 由 backend 以 `docker run` 动态拉起（见 renderer/README.md 协议），
+# 因此 backend 容器需要挂载宿主 docker.sock（job-runner 常规模式），仅限可信环境。
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:////data/app.db
+      - ARTIFACT_ROOT=/data/artifacts
+      - LLM_BASE_URL=${LLM_BASE_URL}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL=${LLM_MODEL}
+      - RENDERER_MODE=docker
+      - RENDER_TIMEOUT_SECONDS=300
+    volumes:
+      - app-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock   # 动态拉起 renderer 容器
+      - ./nginx/artifacts:/data/artifacts           # 由 nginx 直接分发视频（Range）
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/artifacts:/usr/share/nginx/html/artifacts:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  app-data:
