@@ -46,9 +46,9 @@
 7. 本地开发：前端 `npm run dev`（:5180）；后端 `uvicorn app.main:app`（:8000）；`npm run build` 产出静态站点。
 8. 比赛材料（作品帖五部分、Qoder 开发过程截图）随开发随手留存，勿拖到最后。
 
-## 当前任务：场景级并行渲染流水线（2026-11-19，性能优化）
+## 当前任务：场景级并行渲染流水线（2026-11-19 已完成，PR #2 待合并）
 
-用户反馈生成慢（单视频实测 10–25 分钟）。调查结论：全链路串行是最大瓶颈（编码/渲染逐场景串行、无流水线）。本次改造**不动外部契约与状态机外观**：
+背景：用户反馈生成慢（单视频 10–25 分钟），调查结论为全链路串行（编码/渲染逐场景串行、无流水线）。改造完成，**不动外部契约与状态机外观**：
 
 1. **CODING/RENDERING 融合为流水线**：场景编码仍按序执行（V3 连续性依赖前一场景源码，属设计约束），但场景 i 的渲染与场景 i+1 的编码重叠；渲染任务进入有界线程池并行执行。
 2. **新配置 `MAX_CONCURRENT_RENDERS`**（默认 3，env 可覆盖）：并发渲染任务上限（docker 模式即并发容器数）。
@@ -56,6 +56,15 @@
 4. **线程边界**：渲染 worker 线程只做 fixer LLM 调用（自带 session 仅记录 ModelCall）+ 场景目录文件写入；Job/Scene/Artifact 的 DB 写全部留在 job 主线程（SQLite WAL + expire_on_commit=False 保证跨线程读安全）。
 5. **状态机外观不变**：task_events 仍为 PLANNING→CODING→RENDERING→COMPOSING→VALIDATING→COMPLETED；进度仍按渲染完成数 25→75；REPAIRING_CODE 子状态经结果队列实时上报。
 6. **语义保持**：取消/超时等在途渲染收尾后再退出（与原串行行为一致）；场景渲染彻底失败仍 fail-fast 立即 FAILED；fixer 抛出的错误码（FAILED_CODE/MODEL_UPSTREAM）保持不变。
+
+验证记录（2026-11-19）：
+- pytest 38 通过；新增 `backend/tests/test_pipeline_parallel.py` 6 例（屏障证明并发、单槽位排空、修复恢复、耗尽 fail-fast、错误码保持、中途取消）
+- 真实 e2e（WSL + Docker + mock LLM，3 场景 60s）：总耗时 16.0s COMPLETED；`docker ps` 实测 3 容器同时运行；单容器渲染 5.66s 而渲染阶段仅 7s（串行需 ~17s）；状态机序列与产物完整
+- `scripts/mock_llm_server.py` 补 Concept Explainer 分支（PR #1 两阶段规划后离线 e2e 必需）
+
+遗留事项：
+- 真实 DeepSeek key 下实测提速倍数（管线正确性已验证，仅缺真实 LLM 延迟数据）
+- 后续可选优化：compose 去冗余重编码（renderer 输出格式已统一，可 `-c copy`）、LLM 设 `max_tokens`、渲染容器 LaTeX 缓存卷（需评估安全边界）
 
 ## 里程碑（11 天压缩版，2026-11-19 起）
 
