@@ -18,6 +18,7 @@ code with an invalid product counts as failure.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -47,9 +48,6 @@ class RenderResult:
         if self.returncode != 0:
             return f"renderer exited with code {self.returncode}"
         return "render produced an invalid video"
-
-
-_MANIM_IMAGE = "aitv/manim:0.19"          # prewired; image built separately
 _VERSION_RE = re.compile(r"^source_v(\d+)\.py$")
 
 
@@ -204,30 +202,47 @@ def _local_log(cmd: list[str], output: str, workdir: Path) -> str:
 
 
 # ---------------------------------------------------------------- docker mode
+_MANIM_IMAGE = "ai-tutor-video-renderer:latest"  # built from renderer/ (see its README)
+
+
 def _render_docker(
     scene_dir: Path, source_path: Path, version: int, started: float
 ) -> RenderResult:
-    """Restricted container: no network, non-root, resource limits,
-    read-only source mount, writable output volume."""
+    """Hardened container per renderer/README.md protocol: the image's
+    entrypoint renders the scene and prints a JSON verdict on stdout.
+
+    The container runs as uid 1000, so the host-side output dir must be
+    writable by it (best-effort chmod; the backend typically owns the tree)."""
     out = scene_dir / f"render_v{version}.mp4"
     output_dir = scene_dir / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        os.chmod(output_dir, 0o777)
+    except OSError:
+        pass  # Windows hosts: chmod is advisory only
     src_dir = source_path.parent
+
+    def _img_tmpfs(path: str, size: str) -> list[str]:
+        return ["--tmpfs", f"{path}:size={size},uid=1000,gid=1000,mode=1777"]
+
     cmd = [
         "docker", "run", "--rm",
         "--name", f"aitv-render-v{version}",
         "--network", "none",
         "--user", "1000:1000",
-        "--memory", "2g", "--cpus", "2",
+        "--memory", "2g", "--memory-swap", "2g",
+        "--cpus", "2",
         "--pids-limit", "128",
+        "--read-only",
+        *_img_tmpfs("/tmp", "256m"),
+        *_img_tmpfs("/work/media", "1g"),
+        *_img_tmpfs("/home/renderer", "128m"),
         "--security-opt", "no-new-privileges",
-        "-v", f"{src_dir}:/src:ro",
-        "-v", f"{output_dir}:/output",
-        "-w", "/work",
+        "--cap-drop", "ALL",
+        "-v", f"{src_dir.resolve()}:/task/src:ro",
+        "-v", f"{output_dir.resolve()}:/task/out",
         _MANIM_IMAGE,
-        "python", "-m", "manim", "-ql",
-        f"/src/{source_path.name}", "GeneratedScene",
-        "--media_dir", "/output/media",
+        f"/task/src/{source_path.name}", "GeneratedScene",
     ]
     docker_bin = shutil.which("docker")
     if docker_bin is None:
@@ -235,7 +250,7 @@ def _render_docker(
             "# DOCKER render\n"
             "ERROR: docker executable not found on PATH.\n"
             "RENDERER_MODE=docker requires a running Docker Engine and the\n"
-            f"manim image {_MANIM_IMAGE} (build it under renderer/).\n"
+            f"image {_MANIM_IMAGE} (build it from renderer/ — see its README).\n"
             f"Command that would run:\n$ {' '.join(cmd)}"
         )
         return RenderResult(None, log, 127, time.monotonic() - started, ok=False,
@@ -245,7 +260,8 @@ def _render_docker(
             cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
             timeout=settings.RENDER_TIMEOUT_SECONDS,
         )
-        rc, output = proc.returncode, (proc.stdout or "") + (proc.stderr or "")
+        rc, output = proc.returncode, proc.stdout or ""
+        stderr = proc.stderr or ""
     except subprocess.TimeoutExpired as exc:
         out_txt = ((exc.stdout or "") + (exc.stderr or ""))
         if isinstance(out_txt, bytes):
@@ -256,20 +272,32 @@ def _render_docker(
         return RenderResult(None, _docker_log(cmd, str(exc)), 127, time.monotonic() - started,
                             ok=False, error="docker executable not found on PATH")
 
-    candidates = sorted(output_dir.glob("media/**/GeneratedScene.mp4"), key=lambda p: p.stat().st_mtime)
-    product = candidates[-1] if candidates else None
-    if rc != 0:
-        error = f"docker render exited with code {rc}"
-    elif product is None:
-        error = "docker render finished but produced no GeneratedScene.mp4"
-    else:
-        error = None
-    ok = rc == 0 and product is not None and product.stat().st_size > 0
-    if ok:
-        shutil.copyfile(product, out)
+    log = _docker_log(cmd, output + "\n" + stderr)
+    verdict = None
+    for line in reversed((output or "").strip().splitlines()):
+        line = line.strip()
+        if line.startswith("{"):
+            try:
+                verdict = json.loads(line)
+                break
+            except json.JSONDecodeError:
+                continue
+    if verdict is None:
+        return RenderResult(None, log, rc or 1, time.monotonic() - started, ok=False,
+                            error="docker renderer printed no JSON verdict")
+    if not verdict.get("ok"):
+        return RenderResult(None, log, 1, time.monotonic() - started, ok=False,
+                            error=f"docker renderer failed: {str(verdict.get('error'))[:500]}")
+
+    produced = Path(str(verdict.get("video") or "")).name
+    product = output_dir / produced if produced else None
+    if product is None or not product.is_file() or product.stat().st_size == 0:
+        return RenderResult(None, log, 1, time.monotonic() - started, ok=False,
+                            error=f"docker renderer reported {produced!r} but the file is missing")
+    shutil.copyfile(product, out)
     return RenderResult(
-        out if ok else None, _docker_log(cmd, output), rc,
-        time.monotonic() - started, ok=ok, error=error,
+        out, log, 0, time.monotonic() - started,
+        ok=True, info={"container_seconds": verdict.get("seconds"), "resolution": verdict.get("resolution")},
     )
 
 
