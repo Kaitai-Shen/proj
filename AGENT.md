@@ -46,6 +46,17 @@
 7. 本地开发：前端 `npm run dev`（:5180）；后端 `uvicorn app.main:app`（:8000）；`npm run build` 产出静态站点。
 8. 比赛材料（作品帖五部分、Qoder 开发过程截图）随开发随手留存，勿拖到最后。
 
+## 当前任务：场景级并行渲染流水线（2026-11-19，性能优化）
+
+用户反馈生成慢（单视频实测 10–25 分钟）。调查结论：全链路串行是最大瓶颈（编码/渲染逐场景串行、无流水线）。本次改造**不动外部契约与状态机外观**：
+
+1. **CODING/RENDERING 融合为流水线**：场景编码仍按序执行（V3 连续性依赖前一场景源码，属设计约束），但场景 i 的渲染与场景 i+1 的编码重叠；渲染任务进入有界线程池并行执行。
+2. **新配置 `MAX_CONCURRENT_RENDERS`**（默认 3，env 可覆盖）：并发渲染任务上限（docker 模式即并发容器数）。
+3. **容器名唯一化**：docker `--name` 加随机后缀，避免并行渲染时同名冲突。
+4. **线程边界**：渲染 worker 线程只做 fixer LLM 调用（自带 session 仅记录 ModelCall）+ 场景目录文件写入；Job/Scene/Artifact 的 DB 写全部留在 job 主线程（SQLite WAL + expire_on_commit=False 保证跨线程读安全）。
+5. **状态机外观不变**：task_events 仍为 PLANNING→CODING→RENDERING→COMPOSING→VALIDATING→COMPLETED；进度仍按渲染完成数 25→75；REPAIRING_CODE 子状态经结果队列实时上报。
+6. **语义保持**：取消/超时等在途渲染收尾后再退出（与原串行行为一致）；场景渲染彻底失败仍 fail-fast 立即 FAILED；fixer 抛出的错误码（FAILED_CODE/MODEL_UPSTREAM）保持不变。
+
 ## 里程碑（11 天压缩版，2026-11-19 起）
 
 | 阶段 | 日期 | 内容 |
