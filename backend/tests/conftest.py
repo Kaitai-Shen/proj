@@ -28,9 +28,16 @@ import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.providers.openai_compatible import ChatResult, LLMClient  # noqa: E402
-from app.services.coder import CODER_PROMPT_V1  # noqa: E402
+from app.services.coder import CODER_PROMPT_V3  # noqa: E402
 from app.services.fixer import FIXER_PROMPT_V1  # noqa: E402
-from app.services.planner import PLANNER_PROMPT_V1  # noqa: E402
+from app.services.planner import CONCEPT_PROMPT_V1, PLANNER_PROMPT_V3  # noqa: E402
+
+DEFAULT_CONCEPT_NOTES = (
+    "【一句话本质】这是测试用的概念讲解：边界上的累积等于内部微小贡献的总和。"
+    "【公式逐项拆解】左端沿边界累积，右端对区域求和，两端度量同一总量。"
+    "【为什么成立】内部相邻微元的贡献互相抵消，只剩边界。"
+    "【贯穿示例】取单位圆直接计算得 2π，用公式计算也得 2π。"
+)
 
 VALID_CODE = (
     "from manim import *\n"
@@ -70,21 +77,26 @@ def make_plan(duration: int = 15, n: int = 2) -> dict:
 class FakeChat:
     """Dispatches on the system prompt identity; programmable per attempt."""
 
-    def __init__(self, planner_outputs=None, coder_outputs=None, fixer_outputs=None):
+    def __init__(self, planner_outputs=None, coder_outputs=None, fixer_outputs=None,
+                 concept_outputs=None):
         self.planner_outputs = list(planner_outputs or [])
         self.coder_outputs = list(coder_outputs or [])
         self.fixer_outputs = list(fixer_outputs or [])
+        self.concept_outputs = list(concept_outputs or [])
         self.calls: list[tuple[str, str]] = []
 
     def __call__(self, *args, system=None, user=None, json_mode=True, temperature=0.4):
         # Works both as a direct callable and monkeypatched onto LLMClient.chat
         # (in the latter case args[0] is the LLMClient instance and is ignored).
-        self.calls.append(("planner" if system == PLANNER_PROMPT_V1
+        self.calls.append(("concept" if system == CONCEPT_PROMPT_V1
+                           else "planner" if system == PLANNER_PROMPT_V3
                            else "fixer" if system == FIXER_PROMPT_V1
-                           else "coder" if system == CODER_PROMPT_V1 else "?", user))
-        if system == PLANNER_PROMPT_V1:
+                           else "coder" if system == CODER_PROMPT_V3 else "?", user))
+        if system == CONCEPT_PROMPT_V1:
+            out = self.concept_outputs.pop(0) if self.concept_outputs else DEFAULT_CONCEPT_NOTES
+        elif system == PLANNER_PROMPT_V3:
             out = self.planner_outputs.pop(0) if self.planner_outputs else make_plan()
-        elif system == CODER_PROMPT_V1:
+        elif system == CODER_PROMPT_V3:
             out = self.coder_outputs.pop(0) if self.coder_outputs else VALID_CODE
         elif system == FIXER_PROMPT_V1:
             out = self.fixer_outputs.pop(0) if self.fixer_outputs else VALID_CODE
@@ -144,6 +156,7 @@ def poll_job(client, job_id: str, want: str, timeout: float = 180.0) -> dict:
 @pytest.fixture()
 def job_pair(client, mock_llm):
     """A completed job (stub pipeline) + helper accessors."""
+    mock_llm()
     def _make(**kw) -> dict:
         created = create_job(client, **kw)
         run_job_sync(created["job_id"])
