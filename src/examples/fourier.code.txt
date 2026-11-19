@@ -1,0 +1,74 @@
+export default function Lecture() {
+  return (
+    <>
+      <Sequence from={0} durationInFrames={270}>
+        <Scene title="什么是傅里叶级数" subtitle="用简单的波，叠加出复杂的周期函数">
+          <FigureCard
+            icon="🌊"
+            title="核心想法"
+            lines={["任何周期信号，都可以分解为", "一组不同频率正弦波的叠加"]}
+            delay={15}
+          />
+          <FigureCard
+            icon="🎹"
+            title="生活中的例子"
+            lines={["同一个琴键发出的音色", "由基频与泛音共同决定"]}
+            delay={45}
+          />
+          <CaptionBar text="傅里叶级数告诉我们：再复杂的周期函数，也是简单正弦波的合唱。" delay={30} />
+        </Scene>
+      </Sequence>
+
+      <Sequence from={270} durationInFrames={330}>
+        <Scene title="级数的数学形式">
+          <FormulaCard
+            tex={String.raw`f(x) = a_0 + \sum_{n=1}^{\infty}\left( a_n \cos nx + b_n \sin nx \right)`}
+            caption="周期函数 = 常数项 + 各阶正弦 / 余弦分量的加权和"
+            delay={15}
+          />
+          <CaptionBar text="系数 an 和 bn，就是函数在不同频率上的『成分含量』。" delay={70} />
+        </Scene>
+      </Sequence>
+
+      <Sequence from={600} durationInFrames={360}>
+        <Scene title="方波与谐波叠加" subtitle="项数越多，逼近越好">
+          <AnimatedAxes xRange={[0, 10]} yRange={[-1.6, 1.6]} width={880} height={520} gridStep={2}>
+            <PlotCurve
+              fn={(x) => (Math.sin(2 * x) > 0 ? 0.8 : -0.8)}
+              range={[0, 10]}
+              color={PALETTE.amber}
+              strokeWidth={5}
+              drawDuration={70}
+              delay={10}
+            />
+            <PlotCurve
+              fn={(x) => Math.sin(2 * x) * (4 / Math.PI)}
+              range={[0, 10]}
+              color={PALETTE.accent}
+              strokeWidth={3}
+              drawDuration={70}
+              delay={90}
+            />
+            <PlotPoint x={2.2} y={0.8} color={PALETTE.mint} label="陡峭的跳变边" labelSide="top" delay={170} />
+          </AnimatedAxes>
+          <CaptionBar text="黄线是方波，蓝线是它的一次谐波近似——加上更多项，尖角会被逐渐填平。" delay={140} />
+        </Scene>
+      </Sequence>
+
+      <Sequence from={960} durationInFrames={270}>
+        <Scene title="三句话记住傅里叶级数">
+          <StepList
+            steps={[
+              "周期函数可以分解成一组正弦波",
+              "每个频率有自己的『含量』系数",
+              "叠加的项越多，越接近原函数",
+            ]}
+            activeIndex={-1}
+            delay={10}
+          />
+          <CaptionBar text="从信号处理到图像压缩，傅里叶级数都是背后最基础的那块积木。" delay={90} />
+        </Scene>
+      </Sequence>
+    </>
+  );
+}

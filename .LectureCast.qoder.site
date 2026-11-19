@@ -1,0 +1,1 @@
+{"version":1,"name":"LectureCast","design":{"version":1,"pages":[{"id":"landing","path":"/","title":"首页 · 知识点输入与演示案例"},{"id":"studio","path":"/studio","title":"生成工作台 · 三智能体流水线"}],"capabilities":["appearance","radius","spacing","typography","motion"]}}

@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --site-bg: #0a0e1a;
+  --site-fg: #e2e8f0;
+  --site-accent: #5b8cff;
+  --site-accent-soft: #8fb0ff;
+  --site-on-accent: #0a0e1a;
+  --site-surface: #101625;
+  --site-surface-high: #1a2236;
+  --site-muted: #94a3b8;
+  --site-border: rgba(255, 255, 255, 0.1);
+  --site-font: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui,
+    sans-serif;
+  --site-radius: 12px;
+  --site-space: 1;
+  --site-type: 1;
+  --site-motion: 1;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--site-bg);
+  color: var(--site-fg);
+  font-family: var(--site-font);
+  @apply antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  transition-duration: calc(180ms * var(--site-motion, 1));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

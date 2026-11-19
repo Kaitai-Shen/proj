@@ -1,0 +1,100 @@
+# LectureCast 动画组件 API（生成教学视频代码的唯一可用接口）
+
+## 全局约定（必须遵守）
+
+1. 生成一个完整 React 组件文件，**默认导出**根组件（如 export default function Lecture()）。
+2. **无需任何 import**：React、所有组件、动画函数已在运行作用域中，直接使用即可。
+3. 视频规格：1920x1080，30fps。总时长由各 Sequence 的 durationInFrames 之和决定。
+4. 所有动画必须由 useCurrentFrame() + interpolate()/spring() 驱动（确定性逐帧渲染）。禁止 Math.random()、Date.now()、网络请求、setTimeout。
+5. 每个 Scene 必须包在 <Sequence from={起始帧} durationInFrames={帧数}> 中，首节 from=0，后续依次累加。
+6. 每节建议 240-360 帧（8-12 秒），总时长控制在 900-1500 帧（30-50 秒）。
+7. 文案使用简体中文，讲解词（narration）放入 <CaptionBar>，随节内展示。
+8. 只使用下方列出的组件与函数，不要使用其他第三方库。
+
+## 作用域内可直接使用的 Remotion 原语
+
+- useCurrentFrame(): number — 当前帧（在 Sequence 内为节内相对帧，从 0 开始）
+- useVideoConfig(): { fps, width, height }
+- interpolate(input, [inMin, inMax], [outMin, outMax], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) — 线性插值
+- spring({ frame, fps, config: { damping: 200 } }) — 弹性动画，返回 0→1 的进度值
+- <Sequence from={number} durationInFrames={number}> — 时间轴切片
+- <AbsoluteFill style={...}> — 全屏容器
+- Easing.bezier(...)、Easing.out(Easing.cubic) — 缓动函数
+
+## 组件 API
+
+### <Scene title="节标题" subtitle="可选副标题">children</Scene>
+一节的舞台：深色背景 + 左上大标题 + 底部留给 CaptionBar。每个 Sequence 内放一个 Scene。
+
+### <CaptionBar text="讲解词" delay={10} />
+底部字幕条，淡入上浮。每节放一条，内容 = 该节讲解词（可精简）。
+
+### <FormulaCard tex="LaTeX 公式" caption="公式说明" delay={0} scale={1} />
+KaTeX 公式卡片，弹性放大出场。tex 为合法 LaTeX 字符串（注意 JS 字符串中反斜杠转义，推荐 String.raw 或双反斜杠）。
+
+### <StepList steps={["步骤一","步骤二","步骤三"]} activeIndex={-1} delay={0} />
+编号步骤列表，逐条交错入场；activeIndex 高亮当前步（-1 表示不高亮）。
+
+### <FigureCard icon="🧠" title="概念名" lines={["要点1","要点2"]} delay={0} width={340} />
+带 emoji 图标的概念卡片，弹性出场。
+
+### <TableCompare headers={["列A","列B"]} rows={[["a1","b1"],["a2","b2"]]} highlightColumn={-1} delay={0} />
+对比表格，整表淡入；highlightColumn 高亮某列（-1 不高亮）。
+
+### <AnimatedAxes xRange={[0, 10]} yRange={[0, 5]} width={900} height={560} xLabel="x" yLabel="y" gridStep={1}>children</AnimatedAxes>
+笛卡尔坐标系（SVG），children 内可放绘图元素。坐标映射已自动完成。
+
+### <PlotCurve fn={(x) => Math.sin(x)} range={[0, 6.28]} color="#5b8cff" strokeWidth={4} drawDuration={60} delay={0} />
+在父级 AnimatedAxes 内逐段绘制函数曲线（progressive draw）。fn 必须处处返回有限数值，输出值建议控制在 yRange 范围内。
+
+### <PlotPoint x={3} y={2} color="#ffb454" r={8} label="P(3,2)" labelSide="right" delay={30} />
+坐标系内带标签的点，弹性出现。labelSide: "left"|"right"|"top"|"bottom"。
+
+### <LabeledArrow from={[1, 1]} to={[5, 3]} color="#63e6be" label="方向向量" delay={20} />
+坐标系内带文字的箭头，从头到尾生长动画。
+
+## 调色板（直接引用值）
+
+PALETTE = { accent: "#5b8cff", accentSoft: "#8fb0ff", amber: "#ffb454", mint: "#63e6be", rose: "#ff7d92", violet: "#b18cff", text: "#eef2ff", textDim: "#b7c4e3" }
+
+## 完整示例（结构、节奏、组件用法以此为准）
+
+export default function Lecture() {
+  return (
+    <>
+      <Sequence from={0} durationInFrames={300}>
+        <Scene title="什么是傅里叶级数" subtitle="用简单的波叠加出复杂的周期函数">
+          <FigureCard icon="🌊" title="核心想法" lines={["任何周期信号都可以分解为", "一组正弦波的叠加"]} />
+          <CaptionBar text="傅里叶级数告诉我们：复杂的周期函数，其实是简单正弦波的合唱。" delay={20} />
+        </Scene>
+      </Sequence>
+      <Sequence from={300} durationInFrames={360}>
+        <Scene title="级数的数学形式">
+          <FormulaCard
+            tex={String.raw`f(x) = a_0 + \sum_{n=1}^{\infty}\left( a_n \cos nx + b_n \sin nx \right)`}
+            caption="周期函数可由常数项与各阶正弦/余弦分量合成"
+            delay={15}
+          />
+          <CaptionBar text="每一项 an、bn 就是函数在不同频率上的'成分含量'。" delay={60} />
+        </Scene>
+      </Sequence>
+      <Sequence from={660} durationInFrames={360}>
+        <Scene title="方波与叠加">
+          <AnimatedAxes xRange={[0, 10]} yRange={[-1.5, 1.5]} width={860} height={520} gridStep={2}>
+            <PlotCurve fn={(x) => (Math.sin(2 * x) > 0 ? 0.8 : -0.8)} range={[0, 10]} color={PALETTE.amber} drawDuration={80} />
+            <PlotCurve fn={(x) => Math.sin(2 * x) * (4 / Math.PI)} range={[0, 10]} color={PALETTE.accent} drawDuration={80} delay={70} />
+          </AnimatedAxes>
+          <CaptionBar text="黄线是方波，蓝线是它的一次谐波近似——项数越多，逼近越好。" delay={40} />
+        </Scene>
+      </Sequence>
+    </>
+  );
+}
+
+## 常见错误（生成时必须避免）
+
+- Sequence 的 from/durationInFrames 不连续导致黑屏：务必累加正确。
+- 在 <Scene> 外直接放 <CaptionBar>（需要 Scene 的定位上下文）。
+- PlotCurve 的 fn 在定义域内返回 NaN/Infinity。
+- LaTeX 中反斜杠未转义（应使用 String.raw 或双反斜杠）。
+- 使用了 API 之外的组件或 import 语句。
