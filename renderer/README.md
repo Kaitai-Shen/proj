@@ -17,6 +17,7 @@ docker run --rm \
 ```
 
 - stdout 最后一行：`{"ok": true, "video": "/task/out/<source_vN>.mp4", "seconds": ..., "duration": ...}` 或 `{"ok": false, "error": "..."}`。
+- **宿主侧输出目录必须对 uid 1000 可写**（`chmod 777` 或 `chown 1000:1000`），否则容器内写 mp4/log 会 PermissionError。
 - 退出码 0 仅在 ok=true 且 ffprobe 校验通过（视频流存在、时长>0、1920x1080@30fps）时返回。
 - 渲染超时默认 300s（容器内 env `RENDER_TIMEOUT_SECONDS` 可调）。
 - 静态预检在 entrypoint 内做第一道过滤（危险 import 拒绝），但**真正的隔离靠容器策略**。

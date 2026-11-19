@@ -8,6 +8,9 @@ SRC_DIR="$(dirname "$SRC_FILE")"
 OUT_DIR="$(realpath "$2")"
 CLASS="${3:-GeneratedScene}"
 
+# 容器以 uid 1000 写输出：宿主侧目录需放权（root 下执行有效，非 root 失败不阻塞）
+chmod 777 "$OUT_DIR" 2>/dev/null || true
+
 # Rootless, network-less, resource-limited per design doc §8.
 # Source mounted read-only; only /task/out is writable by the container.
 docker run --rm \
@@ -17,9 +20,9 @@ docker run --rm \
   --cpus 2 \
   --pids-limit 128 \
   --read-only \
-  --tmpfs /tmp:size=256m \
-  --tmpfs /work/media:size=1g \
-  --tmpfs /home/renderer:size=128m \
+  --tmpfs /tmp:size=256m,uid=1000,gid=1000,mode=1777 \
+  --tmpfs /work/media:size=1g,uid=1000,gid=1000,mode=1777 \
+  --tmpfs /home/renderer:size=128m,uid=1000,gid=1000,mode=1777 \
   --security-opt no-new-privileges \
   --cap-drop ALL \
   -v "$SRC_DIR":/task/src:ro \
