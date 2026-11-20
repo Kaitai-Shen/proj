@@ -66,6 +66,35 @@
 - 真实 DeepSeek key 下实测提速倍数（管线正确性已验证，仅缺真实 LLM 延迟数据）
 - 后续可选优化：compose 去冗余重编码（renderer 输出格式已统一，可 `-c copy`）、LLM 设 `max_tokens`、渲染容器 LaTeX 缓存卷（需评估安全边界）
 
+## 当前任务：界面生动化改造（暖纸质感，2026-11-20）
+
+背景：用户反馈界面「有点生硬」。视觉体检结论：冷蓝深色仪表盘、emoji 当图标（部分环境渲染成方框）、首屏无成品预览、加载/切换无过渡。参考 Anthropic 官网（暖纸底 + 衬线标题 + 唯一陶土色 CTA + 无色阶不靠阴影）与 Gamma/NotebookLM（首屏放成品/可播样片）。用户已确认：**暖纸质感、全站含 Studio、克制动效**。
+
+设计基线（token 定义在 `src/index.css`，Tailwind 映射在 `tailwind.config.js`）：
+1. 颜色：画布 `#F0EEE6`、卡片 `#FAF9F5`、浅棕 `#E3DACC`、重点面 `#F5E3C7`、墨色 `#141413`、次级墨 `#3D3D3A`、正文灰 `#5E5D59`、弱灰 `#73726C`、描边 `#CCCBC8`、陶土 CTA `#D97757`（hover `#C6613F`，全页只用于主操作）。禁止冷灰/冷蓝。
+2. 字体：UI 用系统无衬线；大标题/品牌字用衬线栈（中文回落 Songti/SimSun，西文 Iowan/Palatino/Georgia）。正文保持无衬线以保证中文小字号可读。
+3. 形体：卡片 24px 圆角、按钮 12px、徽章全圆；1px 描边分层，**不用阴影做高度**（Studio 的播放器/代码面板除外，用深色反转面 `panel-dark`）。
+4. 材质：全站 2–3% 纸纹噪点（SVG feTurbulence，不拦截交互），无渐变、无光晕。
+5. 动效（克制）：页面/卡片 fade-up 入场（仅首屏与列表，60–300ms stagger）、hover 抬升 2px、骨架屏微光、进行中状态点呼吸、进度条平滑、模态淡入缩放；全部尊重 `prefers-reduced-motion`。
+6. 图标：删除所有 emoji 图标，换 `src/components/ui/Icons.tsx` 内联线性 SVG（1.5 描边，currentColor）。
+7. 反转面：`.panel-dark` 作用域内重定义同一套 CSS 变量，Studio 的播放器、代码面板、日志用深暖炭色；其余页面保持纸感。
+
+实施与分工：
+- 主 agent：token/字体/动效/图标库、业务页面（`/`、`/jobs/:id`、`/history`、404）、共享组件（SiteHeader、StatusStepper、ProgressBadge、ArtifactList、ErrorCard、Tutorial、DemoPage 顶栏）。
+- Studio（Landing、Studio、AgentPane、PlayerPane、CodePane、QuizModal）与 SettingsPanel 的 token 迁移（本次由主 agent 完成）；不得改业务逻辑与磁盘契约。
+- 不新增 npm 依赖；不改变网关契约、状态机与轮询行为。
+
+验收口径：
+1. `npm run build` 通过；`/`、`/history`、`/demo`、`/demo/studio` 用无头 Chrome 1440px 截图目检，无方框 emoji、无冷蓝残留。
+2. 视频播放、任务轮询、取消、分镜展开、Studio 生成/测验/设置功能回归通过（后端未启动时错误态也要自然）。
+3. 键盘焦点可见（陶土色 focus ring），`prefers-reduced-motion` 下无位移动画。
+
+验证记录（2026-11-20）：
+- `npm run build` 通过（tsc + vite）；新增图标/插图/海报组件均无外部依赖。
+- 无头 Chrome 1440px 截图：`/`、`/history`、`/demo`、`/demo/studio`、任务详情（完成/进行中/失败）、教程弹窗、分镜展开均正常；emoji 方框与冷蓝残留清零。
+- 390×844 真机视口（CDP Emulation）下 `scrollWidth === 390`，无横向溢出；顶栏小屏只保留图标。
+- 业务逻辑未动：轮询、取消、产物下载、Studio 生成/测验/设置路径保持原样；模拟网关仅用于本地视觉回归，未入库。
+
 ## 里程碑（11 天压缩版，2026-11-19 起）
 
 | 阶段 | 日期 | 内容 |

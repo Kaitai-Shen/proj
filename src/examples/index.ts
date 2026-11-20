@@ -3,7 +3,6 @@ import fourierCode from "./fourier.code.txt?raw";
 
 export type Example = {
   id: string;
-  emoji: string;
   title: string;
   desc: string;
   storyboard: Storyboard;
@@ -85,7 +84,6 @@ const fourierStoryboard: Storyboard = {
 export const EXAMPLES: Example[] = [
   {
     id: "fourier",
-    emoji: "🌊",
     title: "傅里叶级数",
     desc: "4 节 · 41 秒 · 公式 + 波形叠加演示",
     storyboard: fourierStoryboard,

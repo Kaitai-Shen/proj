@@ -4,6 +4,7 @@ import html2canvas from "html2canvas";
 import { useStudio } from "../../store/studio";
 import { totalFrames, type PlayerBridge } from "../../agents/pipeline";
 import { useCompiledLecture } from "../../sandbox";
+import { Film } from "../ui/Icons";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -38,7 +39,7 @@ export default function PlayerPane({ bridgeRef }: Props) {
         const canvas = await html2canvas(el, {
           scale: 0.5,
           logging: false,
-          backgroundColor: "#0b1020",
+          backgroundColor: "#1b1a17",
         });
         return canvas.toDataURL("image/jpeg", 0.75);
       },
@@ -73,17 +74,19 @@ export default function PlayerPane({ bridgeRef }: Props) {
   if (!compiled.ok) {
     if (!generatedCode.trim()) {
       return (
-        <div className="flex h-full items-center justify-center rounded-xl border border-white/10 bg-ink-900/60">
-          <div className="text-center text-slate-500">
-            <div className="mb-2 text-4xl">🎬</div>
+        <div className="panel-dark flex h-full min-h-[240px] items-center justify-center rounded-card-sm border border-line bg-canvas">
+          <div className="text-center text-ink-muted">
+            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-line">
+              <Film size={22} />
+            </span>
             <p className="text-sm">等待生成…</p>
           </div>
         </div>
       );
     }
     return (
-      <div className="flex h-full items-center justify-center rounded-xl border border-rose-500/30 bg-ink-900/60 p-6">
-        <div className="max-w-md text-sm text-rose-300">
+      <div className="flex h-full min-h-[240px] items-center justify-center rounded-card-sm border tone-danger p-6">
+        <div className="max-w-md text-sm">
           <p className="mb-1 font-semibold">生成代码存在错误</p>
           <p className="whitespace-pre-wrap font-mono text-xs opacity-80">
             {compiled.error}
@@ -95,10 +98,14 @@ export default function PlayerPane({ bridgeRef }: Props) {
 
   if (!storyboard || phase === "idle") {
     return (
-      <div className="flex h-full items-center justify-center rounded-xl border border-white/10 bg-ink-900/60">
-        <div className="text-center text-slate-500">
-          <div className="mb-2 text-4xl">🎬</div>
-          <p className="text-sm">输入知识点开始生成，视频将在这里实时播放</p>
+      <div className="panel-dark flex h-full min-h-[240px] items-center justify-center rounded-card-sm border border-line bg-canvas">
+        <div className="max-w-xs text-center text-ink-muted">
+          <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-line">
+            <Film size={22} />
+          </span>
+          <p className="text-sm leading-relaxed">
+            输入知识点开始生成，视频将在这里实时播放
+          </p>
         </div>
       </div>
     );
@@ -107,9 +114,9 @@ export default function PlayerPane({ bridgeRef }: Props) {
   return (
     <div
       ref={containerRef}
-      className="flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-ink-900/60"
+      className="panel-dark flex h-full flex-col overflow-hidden rounded-card-sm border border-line bg-canvas"
     >
-      <div className="flex-1 overflow-hidden bg-black/40">
+      <div className="flex-1 overflow-hidden bg-black">
         <Player
           key={codeVersion}
           ref={playerRef}
@@ -125,12 +132,12 @@ export default function PlayerPane({ bridgeRef }: Props) {
           acknowledgeRemotionLicense
         />
       </div>
-      <div className="flex items-center justify-between border-t border-white/10 px-4 py-2 text-xs text-slate-400">
+      <div className="flex items-center justify-between border-t border-line px-4 py-2 text-xs text-ink-muted">
         <span>
           共 {storyboard.sections.length} 节 · {total} 帧 ·{" "}
           {(total / 30).toFixed(0)} 秒 · 修订 v{codeVersion}
         </span>
-        <span className="text-slate-500">1920×1080 · 30fps</span>
+        <span className="text-ink-faint">1920×1080 · 30fps</span>
       </div>
     </div>
   );

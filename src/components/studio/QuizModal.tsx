@@ -1,5 +1,12 @@
 import { useState } from "react";
 import { useStudio } from "../../store/studio";
+import {
+  BookOpen,
+  CheckCircle,
+  MessageSquare,
+  Trophy,
+  X,
+} from "../ui/Icons";
 
 export default function QuizModal() {
   const show = useStudio((s) => s.showQuiz);
@@ -37,76 +44,100 @@ export default function QuizModal() {
     setFinished(false);
   };
 
+  const ResultIcon =
+    score === quiz.length ? Trophy : score >= quiz.length / 2 ? CheckCircle : BookOpen;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-xl rounded-2xl border border-white/15 bg-ink-800 p-6 shadow-2xl">
+    <div className="animate-overlay fixed inset-0 z-50 flex items-center justify-center bg-[#141413]/45 p-4 backdrop-blur-sm">
+      <div
+        className="animate-modal card-surface w-full max-w-xl p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-label="课后测验"
+      >
         {!finished ? (
           <>
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wide text-accent-soft">
-                TeachQuiz 课后测验 · 第 {idx + 1}/{quiz.length} 题
+              <span className="pill-clay">
+                <MessageSquare size={12} />
+                课后测验 · 第 {idx + 1}/{quiz.length} 题
               </span>
-              <button onClick={close} className="text-slate-500 hover:text-slate-300">
-                ✕
+              <button
+                onClick={close}
+                className="btn-ghost rounded-full p-2"
+                aria-label="关闭测验"
+              >
+                <X size={17} />
               </button>
             </div>
-            <p className="mb-4 text-lg text-slate-100">{q.question}</p>
+            <div className="mb-4 h-1 overflow-hidden rounded-pill bg-oat">
+              <div
+                className="h-full rounded-pill bg-clay transition-all duration-500"
+                style={{ width: `${((idx + (picked !== null ? 1 : 0)) / quiz.length) * 100}%` }}
+              />
+            </div>
+            <p className="font-display mb-4 text-xl leading-snug text-ink">
+              {q.question}
+            </p>
             <div className="flex flex-col gap-2">
               {q.options.map((opt, i) => {
                 const isAnswer = i === q.answerIndex;
                 const isPicked = i === picked;
-                const base = "rounded-lg border px-4 py-3 text-left text-sm transition";
+                const base =
+                  "flex items-center gap-3 rounded-btn border px-4 py-3 text-left text-sm transition";
                 const style =
                   picked === null
-                    ? "border-white/15 bg-white/[0.03] text-slate-300 hover:border-accent/60 hover:bg-accent/10"
+                    ? "border-line bg-canvas text-ink-soft hover:border-clay hover:text-ink"
                     : isAnswer
-                      ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
+                      ? "tone-success"
                       : isPicked
-                        ? "border-rose-500/60 bg-rose-500/10 text-rose-300"
-                        : "border-white/10 bg-white/[0.02] text-slate-500";
+                        ? "tone-danger"
+                        : "border-line bg-canvas text-ink-faint";
                 return (
-                  <button key={i} onClick={() => pick(i)} disabled={picked !== null} className={`${base} ${style}`}>
-                    {String.fromCharCode(65 + i)}. {opt}
+                  <button
+                    key={i}
+                    onClick={() => pick(i)}
+                    disabled={picked !== null}
+                    className={`${base} ${style}`}
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-current text-[11px] font-semibold">
+                      {String.fromCharCode(65 + i)}
+                    </span>
+                    {opt}
                   </button>
                 );
               })}
             </div>
             {picked !== null ? (
-              <div className="mt-4">
-                <p className="mb-3 text-xs leading-relaxed text-slate-400">
+              <div className="animate-enter-fast mt-4">
+                <p className="mb-3 rounded-card-sm bg-canvas p-3 text-xs leading-relaxed text-ink-muted">
                   {q.explanation}
                 </p>
-                <button
-                  onClick={next}
-                  className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-ink-950 hover:bg-accent-soft"
-                >
+                <button onClick={next} className="btn-primary w-full py-2.5">
                   {idx + 1 >= quiz.length ? "查看成绩" : "下一题"}
                 </button>
               </div>
             ) : null}
           </>
         ) : (
-          <>
-            <div className="mb-2 text-center text-5xl">
-              {score === quiz.length ? "🏆" : score >= quiz.length / 2 ? "👍" : "💪"}
-            </div>
-            <p className="mb-1 text-center text-xl font-semibold text-slate-100">
-              {score} / {quiz.length}
+          <div className="text-center">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-line bg-canvas text-clay-deep">
+              <ResultIcon size={30} />
+            </span>
+            <p className="font-display mt-4 text-4xl font-semibold text-ink">
+              {score} <span className="text-lg text-ink-faint">/ {quiz.length}</span>
             </p>
-            <p className="mb-6 text-center text-xs text-slate-500">
+            <p className="mx-auto mt-2 max-w-xs text-xs leading-relaxed text-ink-muted">
               {score === quiz.length
                 ? "满分！你已经掌握了这个知识点"
                 : score >= quiz.length / 2
                   ? "不错，可以回看视频巩固薄弱环节"
                   : "建议回看视频，重点关注讲公式和例子的部分"}
             </p>
-            <button
-              onClick={close}
-              className="w-full rounded-lg bg-white/10 px-4 py-2.5 text-sm text-slate-200 hover:bg-white/20"
-            >
+            <button onClick={close} className="btn-secondary mt-6 w-full py-2.5">
               关闭
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

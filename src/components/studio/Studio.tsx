@@ -8,6 +8,14 @@ import TutorialModal from "./Tutorial";
 import { useLLMSettings } from "../../llm/settings";
 import { useStudio } from "../../store/studio";
 import { runPipeline, abortPipeline } from "../../agents/pipeline";
+import {
+  ArrowLeft,
+  HelpCircle,
+  LogoMark,
+  Play,
+  Settings,
+  X,
+} from "../ui/Icons";
 
 const AUDIENCES = ["高中生", "大学生", "研究生", "工程师", "零基础"];
 
@@ -47,31 +55,32 @@ export default function Studio({ onHome }: { onHome: () => void }) {
   };
 
   return (
-    <div className="flex h-full flex-col gap-3" style={{ padding: "calc(12px * var(--site-space, 1))" }}>
-      <header className="flex shrink-0 items-center gap-3 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-2.5">
-        <button
-          onClick={onHome}
-          className="rounded-lg px-2 py-1 text-xs text-slate-400 hover:bg-white/5 hover:text-slate-200"
-        >
-          ← 首页
+    <div
+      className="flex h-full flex-col gap-3"
+      style={{ padding: "calc(12px * var(--site-space, 1))" }}
+    >
+      <header className="card-surface flex shrink-0 flex-wrap items-center gap-2.5 px-4 py-2.5">
+        <button onClick={onHome} className="btn-ghost">
+          <ArrowLeft size={14} /> 首页
         </button>
-        <span className="text-sm font-bold tracking-wide text-slate-100">
-          LectureCast
+        <span className="flex items-center gap-2">
+          <LogoMark size={24} />
+          <span className="font-display hidden text-sm font-semibold tracking-tight text-ink sm:inline">
+            LectureCast
+          </span>
         </span>
-        <span className="rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[10px] text-accent-soft">
-          三智能体教学视频生成
-        </span>
+        <span className="pill hidden xl:inline-flex">三智能体教学视频生成</span>
         <input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && generate()}
           placeholder="输入知识点，如：傅里叶级数、汉诺塔问题、贝叶斯定理…"
-          className="min-w-0 flex-1 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-1.5 text-sm text-slate-200 placeholder:text-slate-600 focus:border-accent/60 focus:outline-none"
+          className="field-input h-9 min-w-[120px] flex-1 py-1.5 text-sm"
         />
         <select
           value={audience}
           onChange={(e) => setAudience(e.target.value)}
-          className="rounded-lg border border-white/15 bg-ink-800 px-2 py-1.5 text-xs text-slate-300 focus:outline-none"
+          className="field-input h-9 w-auto py-1.5 text-xs"
         >
           {AUDIENCES.map((a) => (
             <option key={a} value={a}>
@@ -79,71 +88,70 @@ export default function Studio({ onHome }: { onHome: () => void }) {
             </option>
           ))}
         </select>
-        <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-400">
+        <label className="flex cursor-pointer items-center gap-1.5 text-xs text-ink-soft">
           <input
             type="checkbox"
             checked={autoCritic}
             onChange={(e) => setAutoCritic(e.target.checked)}
-            className="accent-[#5b8cff]"
+            style={{ accentColor: "var(--site-accent)" }}
           />
           Critic 修正
         </label>
         {running ? (
-          <button
-            onClick={() => abortPipeline()}
-            className="rounded-lg border border-rose-500/50 bg-rose-500/10 px-4 py-1.5 text-sm text-rose-300 hover:bg-rose-500/20"
-          >
+          <button onClick={() => abortPipeline()} className="btn-danger h-9">
             中止
           </button>
         ) : (
-          <button
-            onClick={generate}
-            className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-ink-950 hover:bg-accent-soft"
-          >
+          <button onClick={generate} className="btn-primary h-9 px-4 py-1.5">
+            <Play size={14} />
             生成教学视频
           </button>
         )}
         <button
           onClick={() => setTutorialOpen(true)}
-          className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300 hover:bg-white/10"
+          className="btn-secondary h-9 px-3 py-1.5 text-xs"
           title="新手教程"
         >
-          ❓ 教程
+          <HelpCircle size={14} />
+          教程
         </button>
         <button
           onClick={() => setSettingsOpen(true)}
-          className="rounded-lg border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-300 hover:bg-white/10"
+          className="btn-secondary h-9 px-3 py-1.5 text-xs"
           title="配置模型 API"
         >
-          ⚙ {llm.model || "未配置模型"}
+          <Settings size={14} />
+          <span className="max-w-[96px] truncate">
+            {llm.model || "未配置模型"}
+          </span>
         </button>
       </header>
 
       {error ? (
-        <div className="shrink-0 rounded-lg border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm text-rose-300">
+        <div className="tone-danger shrink-0 rounded-btn border px-4 py-2 text-sm">
           {error}
         </div>
       ) : null}
 
-      <main
-        className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)_340px] gap-3"
-        style={{ gap: "calc(12px * var(--site-space, 1))" }}
-      >
+      <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-auto lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_340px] xl:overflow-hidden">
         <AgentPane />
         <PlayerPane bridgeRef={bridgeRef} />
         <CodePane />
       </main>
 
       {settingsOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-white/15 bg-ink-800 p-5 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-100">模型设置</h2>
+        <div className="animate-overlay fixed inset-0 z-50 flex items-center justify-center bg-[#141413]/45 p-4 backdrop-blur-sm">
+          <div className="animate-modal w-full max-w-lg">
+            <div className="mb-2 flex items-center justify-between px-1">
+              <h2 className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                <Settings size={15} /> 模型设置
+              </h2>
               <button
                 onClick={() => setSettingsOpen(false)}
-                className="text-slate-500 hover:text-slate-300"
+                className="btn-ghost rounded-full p-2"
+                aria-label="关闭设置"
               >
-                ✕
+                <X size={17} />
               </button>
             </div>
             <SettingsPanel
