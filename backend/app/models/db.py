@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 from sqlalchemy import (
     Boolean,
@@ -171,6 +172,11 @@ def init_engine(database_url: str) -> None:
     global engine, SessionLocal
     if engine is not None:
         return
+    if database_url.startswith("sqlite:///") and not database_url.endswith(":memory:"):
+        # sqlite does not create parent directories on connect
+        db_path = database_url[len("sqlite:///"):].split("?")[0]
+        if db_path and db_path != ":memory:":
+            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
     engine = create_engine(database_url, connect_args=connect_args, future=True)
 

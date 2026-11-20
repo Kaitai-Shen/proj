@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -227,7 +228,7 @@ def _render_docker(
 
     cmd = [
         "docker", "run", "--rm",
-        "--name", f"aitv-render-v{version}",
+        "--name", f"aitv-render-{uuid.uuid4().hex[:10]}",
         "--network", "none",
         "--user", "1000:1000",
         "--memory", "2g", "--memory-swap", "2g",

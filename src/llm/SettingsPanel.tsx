@@ -2,12 +2,10 @@ import { useState } from "react";
 import { testConnection, type TestConnectionResult } from "./client";
 import { PROVIDER_PRESETS, getPreset } from "./presets";
 import { useLLMSettings } from "./settings";
-
-const inputClass =
-  "w-full rounded-lg border border-white/10 bg-ink-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-500 outline-none transition focus:border-accent/70 focus:ring-1 focus:ring-accent/40";
+import { BookOpen, CheckCircle, XCircle } from "../components/ui/Icons";
 
 const labelClass = "block space-y-1.5";
-const labelTextStyle = "text-xs font-medium text-slate-400";
+const labelTextStyle = "field-label";
 
 export default function SettingsPanel({
   onShowTutorial,
@@ -44,16 +42,18 @@ export default function SettingsPanel({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-white/10 bg-ink-800 p-5 text-slate-200">
+    <div className="card-surface space-y-4 p-5 text-ink">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-100">模型接入设置</h2>
+        <h2 className="font-display text-base font-semibold text-ink">
+          模型接入设置
+        </h2>
         <button
           type="button"
           onClick={() => {
             clear();
             setResult(null);
           }}
-          className="text-xs text-slate-500 transition hover:text-slate-300"
+          className="text-xs text-ink-muted transition hover:text-ink"
         >
           清空配置
         </button>
@@ -62,7 +62,7 @@ export default function SettingsPanel({
       <label className={labelClass}>
         <span className={labelTextStyle}>供应商预设</span>
         <select
-          className={inputClass}
+          className="field-input"
           value={providerId}
           onChange={(e) => {
             const p = PROVIDER_PRESETS.find((x) => x.id === e.target.value);
@@ -79,12 +79,14 @@ export default function SettingsPanel({
           ))}
         </select>
       </label>
-      {preset?.note && <p className="-mt-2 text-xs text-slate-500">{preset.note}</p>}
+      {preset?.note && (
+        <p className="-mt-2 text-xs text-ink-muted">{preset.note}</p>
+      )}
 
       <label className={labelClass}>
         <span className={labelTextStyle}>Base URL</span>
         <input
-          className={inputClass}
+          className="field-input"
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
           placeholder="https://api.example.com/v1"
@@ -98,13 +100,13 @@ export default function SettingsPanel({
           <button
             type="button"
             onClick={() => setShowKey((v) => !v)}
-            className="text-xs text-accent-soft transition hover:text-accent"
+            className="text-xs text-clay-deep transition hover:text-clay"
           >
             {showKey ? "隐藏" : "显示"}
           </button>
         </div>
         <input
-          className={inputClass}
+          className="field-input"
           type={showKey ? "text" : "password"}
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
@@ -112,7 +114,7 @@ export default function SettingsPanel({
           autoComplete="off"
           spellCheck={false}
         />
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-ink-muted">
           API Key 仅保存在你的浏览器本地，不会上传到任何服务器
         </p>
       </div>
@@ -120,7 +122,7 @@ export default function SettingsPanel({
       <label className={labelClass}>
         <span className={labelTextStyle}>模型</span>
         <input
-          className={inputClass}
+          className="field-input"
           value={model}
           onChange={(e) => setModel(e.target.value)}
           list="llm-model-suggestions"
@@ -134,22 +136,25 @@ export default function SettingsPanel({
         </datalist>
       </label>
 
-      <div className="flex items-center gap-3 pt-1">
+      <div className="flex flex-wrap items-center gap-3 pt-1">
         <button
           type="button"
           onClick={handleTest}
           disabled={testing}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-soft disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-primary px-4 py-2 text-sm"
         >
           {testing ? "测试中…" : "测试连接"}
         </button>
         {result &&
           (result.ok ? (
-            <p className="text-xs text-emerald-400">
-              ✓ 连接成功，延迟 {result.latencyMs} ms（{result.model}）
+            <p className="flex items-center gap-1.5 text-xs text-success">
+              <CheckCircle size={14} /> 连接成功，延迟 {result.latencyMs} ms（
+              {result.model}）
             </p>
           ) : (
-            <p className="break-all text-xs text-red-400">✗ {result.error}</p>
+            <p className="flex items-center gap-1.5 break-all text-xs text-danger">
+              <XCircle size={14} /> {result.error}
+            </p>
           ))}
       </div>
 
@@ -157,9 +162,10 @@ export default function SettingsPanel({
         <button
           type="button"
           onClick={onShowTutorial}
-          className="text-left text-xs text-accent-soft transition hover:text-accent"
+          className="flex items-center gap-1.5 text-left text-xs text-clay-deep transition hover:text-clay"
         >
-          📖 第一次配置？查看图文新手教程 →
+          <BookOpen size={13} />
+          第一次配置？查看图文新手教程
         </button>
       ) : null}
     </div>

@@ -1,11 +1,17 @@
 import { useEffect, useRef } from "react";
 import { useStudio, type AgentName } from "../../store/studio";
 import type { AgentPhase } from "../../types";
+import { Code, Eye, Sparkles } from "../ui/Icons";
 
-const AGENTS: Array<{ name: AgentName; label: string; icon: string; desc: string }> = [
-  { name: "planner", label: "Planner 分镜师", icon: "🧩", desc: "把知识点拆成教学分镜" },
-  { name: "coder", label: "Coder 动画工程师", icon: "⌨️", desc: "把分镜写成可执行动画代码" },
-  { name: "critic", label: "Critic 视觉审查", icon: "🔍", desc: "截帧审查布局并自动修正" },
+const AGENTS: Array<{
+  name: AgentName;
+  label: string;
+  icon: typeof Sparkles;
+  desc: string;
+}> = [
+  { name: "planner", label: "Planner 分镜师", icon: Sparkles, desc: "把知识点拆成教学分镜" },
+  { name: "coder", label: "Coder 动画工程师", icon: Code, desc: "把分镜写成可执行动画代码" },
+  { name: "critic", label: "Critic 视觉审查", icon: Eye, desc: "截帧审查布局并自动修正" },
 ];
 
 function statusOf(phase: AgentPhase, name: AgentName): "pending" | "active" | "done" | "error" {
@@ -21,17 +27,17 @@ function statusOf(phase: AgentPhase, name: AgentName): "pending" | "active" | "d
 }
 
 const COLOR: Record<string, string> = {
-  pending: "border-white/10 bg-white/[0.02] text-slate-500",
-  active: "border-accent/60 bg-accent/10 text-slate-200 shadow-[0_0_18px_rgba(91,140,255,0.25)]",
-  done: "border-emerald-500/40 bg-emerald-500/[0.06] text-slate-300",
-  error: "border-rose-500/50 bg-rose-500/10 text-rose-300",
+  pending: "border-line bg-card text-ink-muted",
+  active: "tone-running",
+  done: "tone-success",
+  error: "tone-danger",
 };
 
 const DOT: Record<string, string> = {
-  pending: "bg-slate-600",
-  active: "bg-accent animate-pulse",
-  done: "bg-emerald-400",
-  error: "bg-rose-400",
+  pending: "bg-ink-faint",
+  active: "bg-clay animate-breath",
+  done: "bg-success",
+  error: "bg-danger",
 };
 
 export default function AgentPane() {
@@ -47,19 +53,25 @@ export default function AgentPane() {
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-hidden">
-      <div className="rounded-xl border border-white/10 bg-ink-900/60 p-3">
-        <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-xs font-semibold tracking-wide text-slate-400">智能体流水线</h2>
+      <div className="card-surface p-3.5">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="eyebrow">智能体流水线</h2>
           {phaseDetail && phase !== "idle" ? (
-            <span className="text-[10px] text-slate-500">{phaseDetail}</span>
+            <span className="text-[10px] text-ink-faint">{phaseDetail}</span>
           ) : null}
         </div>
         <div className="flex flex-col gap-2">
           {AGENTS.map((a) => {
             const st = statusOf(phase, a.name);
+            const Icon = a.icon;
             return (
-              <div key={a.name} className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${COLOR[st]}`}>
-                <span className="text-lg">{a.icon}</span>
+              <div
+                key={a.name}
+                className={`flex items-center gap-3 rounded-card-sm border px-3 py-2 transition ${COLOR[st]}`}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-current bg-transparent">
+                  <Icon size={14} />
+                </span>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">{a.label}</div>
                   <div className="truncate text-[11px] opacity-70">{a.desc}</div>
@@ -72,55 +84,62 @@ export default function AgentPane() {
       </div>
 
       {storyboard ? (
-        <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-white/10 bg-ink-900/60 p-3">
-          <h2 className="mb-2 text-xs font-semibold tracking-wide text-slate-400">
+        <div className="card-surface min-h-0 flex-1 overflow-auto p-3.5">
+          <h2 className="eyebrow mb-2">
             分镜脚本 · {storyboard.sections.length} 节
           </h2>
           <div className="flex flex-col gap-2">
             {storyboard.sections.map((s, i) => (
-              <div key={s.id} className="rounded-lg bg-white/[0.03] px-3 py-2">
+              <div key={s.id} className="card-inset px-3 py-2">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-sm text-slate-200">
+                  <span className="truncate text-sm text-ink">
                     {i + 1}. {s.title}
                   </span>
-                  <span className="shrink-0 text-[10px] text-slate-500">{s.frames}帧</span>
+                  <span className="shrink-0 text-[10px] text-ink-faint">
+                    {s.frames}帧
+                  </span>
                 </div>
-                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-500">
+                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-ink-muted">
                   {s.visual}
                 </p>
               </div>
             ))}
           </div>
           {storyboard.quiz.length > 0 ? (
-            <p className="mt-3 text-[11px] text-slate-500">
-              📝 Planner 已生成 {storyboard.quiz.length} 道课后测验题
+            <p className="mt-3 text-[11px] text-ink-muted">
+              Planner 已生成 {storyboard.quiz.length} 道课后测验题
             </p>
           ) : null}
         </div>
       ) : (
-        <div className="min-h-0 flex-1 rounded-xl border border-white/10 bg-ink-900/60 p-3 text-xs text-slate-600">
-          分镜脚本将在这里实时展示
+        <div className="card-surface flex min-h-0 flex-1 items-center justify-center p-3.5">
+          <div className="text-center text-ink-faint">
+            <span className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-line">
+              <Sparkles size={15} />
+            </span>
+            <p className="text-xs">分镜脚本将在这里实时展示</p>
+          </div>
         </div>
       )}
 
       <div
         ref={logRef}
-        className="h-32 shrink-0 overflow-auto rounded-xl border border-white/10 bg-ink-950/80 p-3 font-mono text-[11px] leading-relaxed"
+        className="panel-dark h-32 shrink-0 overflow-auto rounded-card-sm border border-line bg-canvas p-3 font-mono text-[11px] leading-relaxed"
       >
         {logs.length === 0 ? (
-          <p className="text-slate-600">运行日志…</p>
+          <p className="text-ink-faint">运行日志…</p>
         ) : (
           logs.map((l, i) => (
-            <p key={i} className="text-slate-400">
+            <p key={i} className="text-ink-soft">
               <span
                 className={
                   l.agent === "system"
-                    ? "text-amber-400"
+                    ? "text-warning"
                     : l.agent === "planner"
-                      ? "text-accent-soft"
+                      ? "text-clay-deep"
                       : l.agent === "coder"
-                        ? "text-emerald-400"
-                        : "text-rose-300"
+                        ? "text-success"
+                        : "text-danger"
                 }
               >
                 [{l.agent}]

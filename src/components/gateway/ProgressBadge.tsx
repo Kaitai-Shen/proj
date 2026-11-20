@@ -1,4 +1,5 @@
 import type { JobStatus } from "../../api/gatewayClient";
+import { CheckCircle, Clock, XCircle } from "../ui/Icons";
 
 /** 主状态中文文案（供徽章与其他页面复用） */
 export const STATUS_LABELS: Record<JobStatus, string> = {
@@ -16,18 +17,18 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
 
 const DONE_STATUSES: readonly JobStatus[] = ["COMPLETED", "FAILED", "CANCELLED"];
 
-function colorClass(status: JobStatus): string {
+function toneClass(status: JobStatus): string {
   switch (status) {
     case "COMPLETED":
-      return "border-emerald-500/40 bg-emerald-500/10 text-emerald-300";
+      return "tone-success";
     case "FAILED":
-      return "border-rose-500/50 bg-rose-500/10 text-rose-300";
+      return "tone-danger";
     case "CANCELLED":
-      return "border-white/20 bg-white/5 text-slate-400";
+      return "tone-neutral";
     case "QUEUED":
-      return "border-amber-500/40 bg-amber-500/10 text-amber-300";
+      return "tone-warning";
     default:
-      return "border-accent/40 bg-accent/10 text-accent-soft";
+      return "tone-running";
   }
 }
 
@@ -47,11 +48,17 @@ export default function ProgressBadge({
   const running = !isDone && status !== "QUEUED";
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${colorClass(status)} ${className ?? ""}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium ${toneClass(status)} ${className ?? ""}`}
     >
-      {running && (
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current" />
-      )}
+      {status === "COMPLETED" ? (
+        <CheckCircle size={13} />
+      ) : status === "FAILED" ? (
+        <XCircle size={13} />
+      ) : status === "CANCELLED" ? (
+        <Clock size={13} />
+      ) : running ? (
+        <span className="animate-breath h-1.5 w-1.5 rounded-full bg-current" />
+      ) : null}
       {STATUS_LABELS[status]}
       {!isDone && status !== "QUEUED" && typeof percent === "number" && (
         <span className="tabular-nums opacity-80">

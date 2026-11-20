@@ -43,6 +43,7 @@ class Settings:
         self.RENDERER_MODE: str = os.getenv("RENDERER_MODE", "stub").strip().lower()
         self.RENDER_TIMEOUT_SECONDS: int = int(os.getenv("RENDER_TIMEOUT_SECONDS", "300"))
         self.MAX_RENDER_RETRIES: int = int(os.getenv("MAX_RENDER_RETRIES", "2"))
+        self.MAX_CONCURRENT_RENDERS: int = int(os.getenv("MAX_CONCURRENT_RENDERS", "3"))
         self.MAX_VIDEO_DURATION: int = int(os.getenv("MAX_VIDEO_DURATION", "90"))
         self.MAX_JOB_SECONDS: int = int(os.getenv("MAX_JOB_SECONDS", "3600"))
         self.WORKER_ENABLED: bool = os.getenv("WORKER_ENABLED", "true").strip().lower() in (
@@ -57,6 +58,8 @@ class Settings:
                 f"RENDERER_MODE must be one of {sorted(_VALID_RENDERER_MODES)}, "
                 f"got {self.RENDERER_MODE!r}"
             )
+        if self.MAX_CONCURRENT_RENDERS < 1:
+            raise ValueError("MAX_CONCURRENT_RENDERS must be >= 1")
 
     @property
     def data_dir(self) -> Path:

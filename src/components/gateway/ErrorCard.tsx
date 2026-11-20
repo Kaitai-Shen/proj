@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { API_BASE } from "../../api/gatewayClient";
+import { AlertTriangle, Film, Refresh } from "../ui/Icons";
 
 /**
  * 统一错误卡。
@@ -31,38 +32,45 @@ export default function ErrorCard({
   return (
     <div
       role="alert"
-      className={`rounded-xl border px-4 py-3 text-sm ${
+      className={`animate-enter-fast flex gap-3 rounded-card-sm border p-4 ${
         isNetwork
-          ? "border-amber-500/40 bg-amber-500/10 text-amber-200"
-          : "border-rose-500/40 bg-rose-500/10 text-rose-200"
+          ? "tone-warning"
+          : "tone-danger"
       } ${className ?? ""}`}
     >
-      <div className="font-medium">{finalTitle}</div>
-      {message ?? defaultMessage ? (
-        <div className="mt-1 text-xs leading-relaxed opacity-90">
-          {message ?? defaultMessage}
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-current">
+        <AlertTriangle size={15} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold">{finalTitle}</div>
+        {message ?? defaultMessage ? (
+          <div className="mt-1 text-xs leading-relaxed opacity-90">
+            {message ?? defaultMessage}
+          </div>
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {isNetwork && (
+            <Link
+              to="/demo"
+              className="btn-secondary border-current bg-transparent px-3 py-1.5 text-xs"
+            >
+              <Film size={13} />
+              先到演示模式体验
+            </Link>
+          )}
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="btn-secondary border-current bg-transparent px-3 py-1.5 text-xs"
+            >
+              <Refresh size={13} />
+              重试
+            </button>
+          )}
+          {detail && (
+            <span className="font-mono text-[10px] opacity-70">{detail}</span>
+          )}
         </div>
-      ) : null}
-      <div className="mt-2.5 flex flex-wrap items-center gap-3">
-        {isNetwork && (
-          <Link
-            to="/demo"
-            className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-400/20"
-          >
-            🎬 先到演示模式体验完整效果 →
-          </Link>
-        )}
-        {onRetry && (
-          <button
-            onClick={onRetry}
-            className="rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10"
-          >
-            重试
-          </button>
-        )}
-        {detail && (
-          <span className="font-mono text-[10px] opacity-70">{detail}</span>
-        )}
       </div>
     </div>
   );

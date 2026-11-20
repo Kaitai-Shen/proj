@@ -1,4 +1,5 @@
 import type { JobStatus } from "../../api/gatewayClient";
+import { Check, XCircle } from "../ui/Icons";
 
 interface StepDef {
   key: string;
@@ -30,7 +31,7 @@ const STATUS_INDEX: Record<string, number> = {
 
 /**
  * 状态步进条：QUEUED → PLANNING → CODING → RENDERING → COMPOSING → VALIDATING → COMPLETED。
- * 进行中步骤高亮；FAILED 追加红色「失败」标注；CANCELLED 追加「已取消」。
+ * 进行中步骤以呼吸圆点示意；FAILED / CANCELLED 追加尾部标注。
  */
 export default function StatusStepper({ status }: { status: JobStatus }) {
   const reached = STATUS_INDEX[status] ?? 0;
@@ -39,39 +40,43 @@ export default function StatusStepper({ status }: { status: JobStatus }) {
   const completed = status === "COMPLETED";
 
   return (
-    <ol className="flex w-full items-center">
+    <ol className="flex w-full items-start">
       {STEPS.map((step, i) => {
         const done = completed || (!failed && !cancelled && i < reached);
         const active = !failed && !cancelled && i === reached;
         const isLast = i === STEPS.length - 1;
         const circleCls = done
-          ? "border-accent bg-accent text-ink-950"
+          ? "border-clay bg-clay text-clay-on"
           : active
-            ? "border-accent bg-accent/20 text-accent-soft"
-            : "border-white/15 bg-white/[0.04] text-slate-600";
+            ? "border-clay bg-card"
+            : "border-line bg-card text-ink-faint";
         const labelCls = done
-          ? "text-slate-400"
+          ? "text-ink-soft"
           : active
-            ? "text-accent-soft"
-            : "text-slate-600";
+            ? "font-medium text-clay-deep"
+            : "text-ink-faint";
         return (
-          <li key={step.key} className="flex min-w-0 flex-1 items-center">
-            <div className="flex flex-col items-center gap-1">
+          <li key={step.key} className="flex min-w-0 flex-1 items-start">
+            <div className="flex flex-col items-center gap-1.5">
               <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${circleCls}`}
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold transition ${circleCls}`}
               >
-                {done ? "✓" : i + 1}
+                {done ? (
+                  <Check size={13} />
+                ) : active ? (
+                  <span className="animate-breath h-2 w-2 rounded-full bg-clay" />
+                ) : (
+                  i + 1
+                )}
               </span>
-              <span
-                className={`whitespace-nowrap text-[10px] leading-none ${labelCls}`}
-              >
+              <span className={`whitespace-nowrap text-[11px] leading-none ${labelCls}`}>
                 {step.label}
               </span>
             </div>
             {!isLast && (
               <span
-                className={`mx-1 mb-4 h-px min-w-2 flex-1 ${
-                  done || active ? "bg-accent/60" : "bg-white/10"
+                className={`mx-1.5 mt-3.5 h-px min-w-2 flex-1 ${
+                  done ? "bg-clay" : "bg-line"
                 }`}
               />
             )}
@@ -79,12 +84,12 @@ export default function StatusStepper({ status }: { status: JobStatus }) {
         );
       })}
       {failed && (
-        <li className="ml-3 flex shrink-0 items-center gap-1 rounded-full border border-rose-500/50 bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-300">
-          ✗ 失败
+        <li className="tone-danger ml-3 flex shrink-0 items-center gap-1 rounded-pill border px-2.5 py-1 text-xs font-medium">
+          <XCircle size={13} /> 失败
         </li>
       )}
       {cancelled && (
-        <li className="ml-3 flex shrink-0 items-center rounded-full border border-white/20 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-400">
+        <li className="tone-neutral ml-3 flex shrink-0 items-center rounded-pill border px-2.5 py-1 text-xs font-medium">
           已取消
         </li>
       )}
